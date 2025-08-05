@@ -1,0 +1,107 @@
+on load:
+    console command "/bossbar add tnt-timer ""<none>"""
+    console command "/bossbar set minecraft:tnt-timer color red"
+    console command "/bossbar set minecraft:tnt-timer max 30"
+    console command "/bossbar set minecraft:tnt-timer style notched_6"
+    console command "/bossbar set minecraft:tnt-timer players @a"
+
+command /tnt-tag:set-spawn:
+    permission: op
+    trigger:
+        set {spawn} to the player's position
+        send "&7Set spawn to your position!"
+
+command /tnt-tag:start-game:
+    permission: op
+    trigger:
+        clear {alive::*}
+        clear {it::*}
+        teleport all players to {spawn}
+        broadcast "&c&lSelecting IT in 10 seconds!"
+        play sound "block.bell.use" with pitch 0.5 to all players
+        console command "/effect give @a minecraft:speed infinite 1 true"
+        loop all players:
+            set the loop-player's gamemode to adventure
+            add the loop-player to {alive::*}
+        wait 7 seconds
+        gameLoop()
+
+command /tnt-tag:stop-game:
+    permission: op
+    trigger:
+        set {stop} to true
+
+function gameLoop():
+    while size of {alive::*} > 1:
+        if {stop} is true:
+            set {stop} to false
+            stop
+        wait 5 seconds
+        console command "/effect give @a minecraft:speed infinite 1 true"
+        console command "/effect give @a minecraft:glowing infinite 1 true"
+        console command "/clear @a"
+        if size of {alive::*} > 30:
+            set {_t} to 10
+        else if size of {alive::*} > 20:
+            set {_t} to 8
+        else if size of {alive::*} > 10:
+            set {_t} to 5
+        else if size of {alive::*} > 4:
+            set {_t} to 2
+        else:
+            set {_t} to 1
+        loop {_t} times:
+            set {_player} to a random element out of {alive::*}
+            while {it::*} contains {_player}:
+                set {_player} to a random element out of {alive::*}
+            add {_player} to {it::*}
+        if size of {it::*} > 1:
+            broadcast "&c&l%{it::*}% ARE ALL IT!"
+        else:
+            broadcast "&c&l%{it::*}% IS IT!"
+        loop {it::*}:
+            console command "/effect give %loop-value% minecraft:speed infinite 2 true"
+            set helmet of loop-value to tnt
+        loop 30 times:
+            if {stop} is true:
+                set {stop} to false
+                stop
+            wait 1 second
+            loop all players:
+                console command "/bossbar set minecraft:tnt-timer value %30 - loop-integer%"
+                console command "/bossbar set minecraft:tnt-timer name {""color"":""dark_red"",""text"":""%30 - loop-integer%"",""bold"":true}"
+        if {stop} is true:
+            set {stop} to false
+            stop
+        show explosion emitter at {it::*}
+        play sound "entity.generic.explode" to all players
+        if size of {it::*} > 1:
+            broadcast "&7&l%{it::*}% ARE &c&lOUT!"
+        else:
+            broadcast "&7&l%{it::*}% IS &c&lOUT!"
+        loop {it::*}:
+            set the loop-value's gamemode to spectator
+            remove the loop-value from {alive::*}
+        clear {it::*}
+        console command "/effect clear @a"
+    wait 3 seconds
+    if size of {alive::*} = 1:
+        broadcast "&6&l%{alive::*}% Has Won!"
+        play sound "ui.toast.challenge_complete" with pitch 1.25 to {alive::*}
+    else:
+        broadcast "&7no one wins ig..."
+
+on damage of player:
+    if {it::*} contains the attacker:
+        if {it::*} doesn't contain the victim:
+            play sound "entity.tnt.primed" to victim
+            remove the attacker from {it::*}
+            add the victim to {it::*}
+            set helmet of attacker to air
+            set helmet of victim to tnt
+            console command "/effect clear %attacker%"
+            console command "/effect give %attacker% minecraft:speed infinite 1 true"
+            console command "/effect give %victim% minecraft:speed infinite 2 true"
+            broadcast "&7&l%victim% IS &c&lIT!"
+    else:
+        cancel the event
